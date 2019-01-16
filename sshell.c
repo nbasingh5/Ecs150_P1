@@ -12,7 +12,6 @@ struct cmdByuser {
 
 int main(int argc, char *argv[])
 {
-
   char *userInput;
   size_t bufsize = 32;
   int status;
@@ -20,7 +19,7 @@ int main(int argc, char *argv[])
   char delim[] = " ";
   int count = 1;
   char *SaveInput;
-  char *leave = "hey";
+  char *cdCall;
 
 while (1) {
   userInput = (char *)malloc(bufsize * sizeof(char));
@@ -41,8 +40,15 @@ while (1) {
     struct cmdByuser first;
 
     char *Firstinput = strtok(userInput, delim);
+    if (strcmp("cd",Firstinput) == 0){
+      Firstinput = strtok(NULL, delim);
+      cdCall = (char *) malloc(1 + strlen(Firstinput));
+      cdCall = Firstinput;
+      chdir(cdCall);
+      Firstinput = "";
+    }
+    else{
     first.FirstCmd = Firstinput;
-    printf("FirstCmd = [%s]\n", first.FirstCmd);
     if (strcmp("exit",first.FirstCmd) == 0){
       printf("Bye...\n");
       exit(0);
@@ -55,6 +61,7 @@ while (1) {
         count++;
       }
     }
+  }
     //shell skeleton
     pid = fork();
     if (pid > 0) {
