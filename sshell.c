@@ -21,30 +21,33 @@ int main(int argc, char *argv[])
     perror("Unable to allocate buffer");
     exit(1);
   }
-  printf("sshell$ ");
-  characters = getline(&userInput,&bufsize,stdin);
-  //printf("UserInput: [%s]", userInput);
-  for (int i = 0; i < strlen(userInput); i++)
-  {
-    if ( userInput[i] == '\n' || userInput[i] == '\r' )
-      userInput[i] = '\0';
-  }
-  //printf("NEW UserInput: [%s]", userInput);
+  //start loop to continuosly ask for userInput unless system fails
+  //while(){
+    printf("sshell$ ");
+    characters = getline(&userInput,&bufsize,stdin);
 
-  combinedCmd = (char *) malloc(1 + strlen(cmd)+ strlen(userInput) );
-  strcpy(combinedCmd,cmd);
-  strcat(combinedCmd,userInput);
-  char *args[] = {combinedCmd, "-u", NULL };
-  //printf("Line: [%s]", args[0]);
+    //concatenate userInput and cmd
+    for (int i = 0; i < strlen(userInput); i++)
+    {
+      if ( userInput[i] == '\n' || userInput[i] == '\r' )
+        userInput[i] = '\0';
+    }
+    combinedCmd = (char *) malloc(1 + strlen(cmd)+ strlen(userInput) );
+    strcpy(combinedCmd,cmd);
+    strcat(combinedCmd,userInput);
+    char *args[] = {combinedCmd, "-u", NULL };
 
-  pid = fork();
-  if (pid > 0) {
-    waitpid(-1, &status, 0);
-    fprintf(stderr, "+ completed '/bin/date -u' [%d]\n", WEXITSTATUS(status));
-  }
-  else if (pid == 0) {
-
-    execvp(combinedCmd,args);
-    perror("execvp");
-  }
+    //shell skeleton
+    pid = fork();
+    if (pid > 0) {
+      waitpid(-1, &status, 0);
+      fprintf(stderr, "+ completed '/bin/date -u' [%d]\n", WEXITSTATUS(status));
+    }
+    else if (pid == 0) {
+      execvp(combinedCmd,args);
+      perror("execvp");
+    }
+  //}
+  //exit with unsuccessul termination
+  //exit(1);
 }
