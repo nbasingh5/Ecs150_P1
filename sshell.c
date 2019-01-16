@@ -15,14 +15,13 @@ int main(int argc, char *argv[])
   pid_t pid;
   char *combinedCmd;
 
+while (1) {
   userInput = (char *)malloc(bufsize * sizeof(char));
   if( userInput == NULL)
   {
     perror("Unable to allocate buffer");
     exit(1);
   }
-  //start loop to continuosly ask for userInput unless system fails
-  //while(){
     printf("sshell$ ");
     characters = getline(&userInput,&bufsize,stdin);
 
@@ -47,7 +46,5 @@ int main(int argc, char *argv[])
       execvp(combinedCmd,args);
       perror("execvp");
     }
-  //}
-  //exit with unsuccessul termination
-  //exit(1);
+  }
 }
