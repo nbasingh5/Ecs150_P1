@@ -5,9 +5,16 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-struct cmdByuser {
+#include <fcntl.h>
+
+struct cmdByuser
+{
     char *FirstCmd;
     char *arguments[16];
+};
+struct InuputR {
+    char *left;
+    char *right;
 };
 
 int main(int argc, char *argv[])
@@ -16,24 +23,34 @@ int main(int argc, char *argv[])
   size_t bufsize = 32;
   int status;
   pid_t pid;
-  char delim[] = " ";
+  char delim[] = "<";
+  char IRdelim[] = "<";
   int count = 1;
-  char *SaveInput;
+  char *SaveInput,*IRtok;
   char *cdCall;
+  int bul = 0;
 
 while (1) {
   userInput = (char *)malloc(bufsize * sizeof(char));
-  if( userInput == NULL)
-  {
-    perror("Unable to allocate buffer");
-    exit(1);
-  }
+  // if( userInput == NULL)delim
+  // {
+  //   perror("Unable to allocate buffer");
+  //   exit(1);
+  // }
     printf("sshell$ ");
     //get command from user
     getline(&userInput,&bufsize,stdin);
-    //allocate space to copy userInput
+    //printf("userInput: [%s]\n",userInput );
+    if( userInput == "\n" || userInput == "\r" || userInput == "")
+    {
+      perror("Unable to allocate buffer");
+      exit(1);
+    }
+
+    //allocate space tfirst.arguments[count]o copy userInput
     SaveInput = (char *) malloc(1 + strlen(userInput));
-    //do not save "return key"
+    IRtok = (char *) malloc(1 + strlen(userInput));
+    //do not save "return keystruc"
     for (int i = 0; i < strlen(userInput); i++)
     {
       if ( userInput[i] == '\n' || userInput[i] == '\r' )
@@ -41,8 +58,34 @@ while (1) {
     }
     //save a copy of userInput in 'SaveInput'
     strcpy(SaveInput,userInput);
+    strcpy(IRtok,userInput);
     //create a struct used to save commands
     struct cmdByuser first;
+    struct InuputR sample;
+
+    //--------------------------------------------------------------------------------------------------
+    char* IRInput = strtok(IRtok, IRdelim);
+    sample.left = IRInput;
+    while (IRInput != NULL) {
+      if (count < 2) {
+        printf("IRInput Left:%s\n",IRInput);
+        IRInput = strtok(NULL, delim);
+        printf("IRInput Right:%s\n",IRInput);
+        sample.right = IRInput;
+        count++;
+      }
+      count = 1;
+    }
+    int IRfile = open(sample.right,O_RDONLY);
+    char buf[256] = "";
+    read(IRfile, buf, sizeof(buf));
+    printf("Buff:");
+    for (size_t z = 0; z < sizeof(buf); z++) {
+      printf("1%c", buf[z]);
+      /* code */
+    }
+
+    //--------------------------------------------------------------------------------------------------
     //tokenize input and save in string
     char *Firstinput = strtok(userInput, delim);
     //check to see if command is 'cd'
@@ -65,6 +108,7 @@ while (1) {
     //store arguemtns in cmd struct
     while (Firstinput != NULL) {
       if (count < 16) {
+        printf("Firstinput:%s\n",Firstinput );
         Firstinput = strtok(NULL, delim);
         first.arguments[count] = Firstinput;
         count++;
@@ -79,8 +123,13 @@ while (1) {
       fprintf(stderr, "+ completed '%s' [%d]\n",SaveInput,WEXITSTATUS(status));
     }
     else if (pid == 0) {
-      execvp(first.FirstCmd,first.arguments);
-      perror("execvp");
+      if (userInput == "") {
+          printf("userInput: [%s]\n",userInput );
+      }
+      else{
+        execvp(first.FirstCmd,first.arguments);
+        perror("execvp");
+      }
     }
     else
     {
