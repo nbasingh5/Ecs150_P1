@@ -4,138 +4,153 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-
 #include <fcntl.h>
 
-struct cmdByuser
-{
-    char *FirstCmd;
+typedef struct UsersInput{
+    char *input;
     char *arguments[16];
-};
-struct InuputR {
-    char *left;
-    char *right;
-};
+}UsersInput;
+
+void RemoveWhiteSpace(UsersInput *temp) {
+  char *buffer = temp->arguments[1];
+  int i,count=0;
+
+  for (size_t i = 0; buffer[i]; i++) {
+    if (buffer[i] != ' ') {
+      buffer[count] = buffer[i];
+      count++;
+    }
+  }
+  buffer[count] = '\0';
+}
+
+void SpaceTok(UsersInput *Tokinput, char* delim) {
+  int count = 1;
+
+  //printf("Funtion: %s\n", Tokinput->input);
+
+  char *parsedInput = strtok(Tokinput->input, delim);
+  Tokinput->arguments[0] = parsedInput;
+
+  //store all arguments in cmd struct
+  while (parsedInput != NULL) {
+    if (count < 16) {
+      //printf("parsedInput:%s\n",parsedInput );
+      parsedInput = strtok(NULL, delim);
+      Tokinput->arguments[count] = parsedInput;
+      count++;
+    }
+  }
+}
 
 int main(int argc, char *argv[])
 {
-  char *userInput;
+  struct UsersInput entered;
+  struct UsersInput IRstruct;
   size_t bufsize = 32;
   int status;
   pid_t pid;
-  char delim[] = "<";
+  char delim[] = " ";
   char IRdelim[] = "<";
-  int count = 1;
-  char *SaveInput,*IRtok;
-  char *cdCall;
+  char *inputCpy,*IRtok;
   int bul = 0;
 
-while (1) {
-  userInput = (char *)malloc(bufsize * sizeof(char));
-  // if( userInput == NULL)delim
-  // {
-  //   perror("Unable to allocate buffer");
-  //   exit(1);
-  // }
+  while (1) {
+    bul = 0;
+    entered.input = (char *)malloc(bufsize * sizeof(char));
+    entered.input = NULL;
     printf("sshell$ ");
-    //get command from user
-    getline(&userInput,&bufsize,stdin);
-    //printf("userInput: [%s]\n",userInput );
-    if( userInput == "\n" || userInput == "\r" || userInput == "")
-    {
-      perror("Unable to allocate buffer");
-      exit(1);
-    }
+    getline(&entered.input,&bufsize,stdin);
 
-    //allocate space tfirst.arguments[count]o copy userInput
-    SaveInput = (char *) malloc(1 + strlen(userInput));
-    IRtok = (char *) malloc(1 + strlen(userInput));
-    //do not save "return keystruc"
-    for (int i = 0; i < strlen(userInput); i++)
-    {
-      if ( userInput[i] == '\n' || userInput[i] == '\r' )
-        userInput[i] = '\0';
+    // for (int i = 0; i < strlen(entered.input); i++)
+    // {
+    //   if ( entered.input[i] == '\n')
+    //   {
+    //     //entered.input[i] = ' ';
+    //     printf("Nothiing:[%c]\n",entered.input[i]);
+    //   }
+    // }
+    if (entered.input[0] == '\n') {
+      continue;
     }
-    //save a copy of userInput in 'SaveInput'
-    strcpy(SaveInput,userInput);
-    strcpy(IRtok,userInput);
-    //create a struct used to save commands
-    struct cmdByuser first;
-    struct InuputR sample;
-
-    //--------------------------------------------------------------------------------------------------
-    char* IRInput = strtok(IRtok, IRdelim);
-    sample.left = IRInput;
-    while (IRInput != NULL) {
-      if (count < 2) {
-        printf("IRInput Left:%s\n",IRInput);
-        IRInput = strtok(NULL, delim);
-        printf("IRInput Right:%s\n",IRInput);
-        sample.right = IRInput;
-        count++;
-      }
-      count = 1;
-    }
-    int IRfile = open(sample.right,O_RDONLY);
-    char buf[256] = "";
-    read(IRfile, buf, sizeof(buf));
-    printf("Buff:");
-    for (size_t z = 0; z < sizeof(buf); z++) {
-      printf("1%c", buf[z]);
-      /* code */
-    }
-
-    //--------------------------------------------------------------------------------------------------
-    //tokenize input and save in string
-    char *Firstinput = strtok(userInput, delim);
-    //check to see if command is 'cd'
-    if (strcmp("cd",Firstinput) == 0){
-      Firstinput = strtok(NULL, delim);
-      cdCall = (char *) malloc(1 + strlen(Firstinput));
-      cdCall = Firstinput;
-      chdir(cdCall);
-      Firstinput = "";
-    }
-    //else can be any other command
     else{
-    first.FirstCmd = Firstinput;
+      char *spot;
+      if ((spot=strchr(entered.input, '\n')) != NULL)
+        *spot = '\0';
+    }
+
+    //allocate space for a copy userInput
+    inputCpy = (char *) malloc(1 + strlen(entered.input));
+    IRstruct.input = (char *) malloc(1 + strlen(entered.input));
+    //copy userInput in 'inputCpy'
+    strcpy(inputCpy,entered.input);
+    //printf("inputCpy: %s\n",inputCpy);
+    strcpy(IRstruct.input,entered.input);
+    SpaceTok(&entered, delim);
+
+    // int i = 0;
+    // while (entered.arguments[i] != NULL) {
+    //   if (i < sizeof(entered.arguments))
+    //       printf("Parts: %s\n", entered.arguments[i]);
+    //       i++;
+    // }
+
+    //check to see if command is 'cd'
+    if (strcmp("cd",entered.arguments[0]) == 0){
+      chdir(entered.arguments[1]);
+      bul = 1;
+    }
     //check to see if command is 'exit'
-    if (strcmp("exit",first.FirstCmd) == 0){
+    if (strcmp("exit",entered.arguments[0]) == 0){
       printf("Bye...\n");
       exit(0);
     }
-    first.arguments[0] = first.FirstCmd;
-    //store arguemtns in cmd struct
-    while (Firstinput != NULL) {
-      if (count < 16) {
-        printf("Firstinput:%s\n",Firstinput );
-        Firstinput = strtok(NULL, delim);
-        first.arguments[count] = Firstinput;
-        count++;
-      }
-    }
-  }
-
-    //shell skeleton
+    //-------------------shell skeleton-------------------
+    //fork a process (create parent and child)
     pid = fork();
+    //parent
     if (pid > 0) {
       waitpid(-1, &status, 0);
-      fprintf(stderr, "+ completed '%s' [%d]\n",SaveInput,WEXITSTATUS(status));
+      fprintf(stderr, "+ completed '%s' [%d]\n",inputCpy,WEXITSTATUS(status));
     }
+    //child
     else if (pid == 0) {
-      if (userInput == "") {
-          printf("userInput: [%s]\n",userInput );
+      if (strcmp(entered.input,"\n") == 0 || bul == 1) {
+          continue;
       }
       else{
-        execvp(first.FirstCmd,first.arguments);
+        if (strstr(inputCpy, "<") != NULL) {
+          SpaceTok(&IRstruct,IRdelim);
+          struct UsersInput Commands;
+          Commands.input = (char *) malloc(1 + strlen(inputCpy));
+          strcpy(Commands.input,IRstruct.arguments[0]);
+          SpaceTok(&Commands, delim);
+          RemoveWhiteSpace(&IRstruct);
+          int FileCheck = open(IRstruct.arguments[1], O_RDONLY, 0644);
+          if(FileCheck < 0){
+            perror("Error");
+            return -1;
+          }
+        dup2(FileCheck, 0);
+        close(FileCheck);
+        //char *args[] = {"grep","toto", NULL };
+        execvp(Commands.arguments[0], Commands.arguments);
+        perror("execvp error");
+        }
+        else if (strstr(inputCpy, ">") != NULL) {
+          /* code */
+        }
+        else{
+        execvp(entered.arguments[0],entered.arguments);
         perror("execvp");
+        }
       }
     }
+    //fork failed
     else
     {
       printf("Fork Failed\n");
       exit(1);
     }
-    count = 1;
   }
 }
