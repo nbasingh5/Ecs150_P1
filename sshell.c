@@ -42,6 +42,39 @@ void SpaceTok(UsersInput *Tokinput, char* delim) {
   }
 }
 
+
+void redirection(UsersInput *redirect, char *direction) {
+  char delim[] = " ";
+  int FileCheck = 0;
+  SpaceTok(redirect,direction);
+  struct UsersInput Commands;
+  Commands.input = (char *) malloc(1 + strlen(redirect->arguments[0]));
+  strcpy(Commands.input,redirect->arguments[0]);
+  SpaceTok(&Commands, delim);
+  RemoveWhiteSpace(redirect);
+
+  if (strcmp(direction, "<") == 0) {
+    FileCheck = open(redirect->arguments[1], O_RDONLY, 0644);
+  }
+  else if (strcmp(direction, ">") == 0) {
+    FileCheck = open(redirect->arguments[1], O_CREAT | O_WRONLY | O_TRUNC, 0644);
+  }
+  if(FileCheck < 0){
+    perror("Error");
+  }
+  if (strcmp(direction, "<") == 0) {
+    dup2(FileCheck, 0);
+  }
+  else if (strcmp(direction, ">") == 0) {
+    dup2(FileCheck, 1);
+  }
+
+  close(FileCheck);
+  //char *args[] = {"grep","toto", NULL };
+  execvp(Commands.arguments[0], Commands.arguments);
+  perror("execvp error");
+}
+
 int main(int argc, char *argv[])
 {
   struct UsersInput entered;
@@ -123,40 +156,13 @@ int main(int argc, char *argv[])
           continue;
       }
       else{
-        if (strstr(inputCpy, "<") != NULL) {
-          SpaceTok(&IRstruct,IRdelim);
-          struct UsersInput Commands;
-          Commands.input = (char *) malloc(1 + strlen(inputCpy));
-          strcpy(Commands.input,IRstruct.arguments[0]);
-          SpaceTok(&Commands, delim);
-          RemoveWhiteSpace(&IRstruct);
-          int FileCheck = open(IRstruct.arguments[1], O_RDONLY, 0644);
-          if(FileCheck < 0){
-            perror("Error");
-            return -1;
-          }
-        dup2(FileCheck, 0);
-        close(FileCheck);
-        //char *args[] = {"grep","toto", NULL };
-        execvp(Commands.arguments[0], Commands.arguments);
-        perror("execvp error");
+        if (strstr(inputCpy, "<") != NULL) {/////////////////////////////////////////////////////////////////
+          redirection(&IRstruct,IRdelim);
+
         }
         else
         if (strstr(inputCpy, ">") != NULL) {
-          SpaceTok(&IRstruct,ORdelim);
-          struct UsersInput Commands;
-          Commands.input = (char *) malloc(1 + strlen(inputCpy));
-          strcpy(Commands.input,IRstruct.arguments[0]);
-          SpaceTok(&Commands, delim);
-          RemoveWhiteSpace(&IRstruct);
-          int FileCheck = open(IRstruct.arguments[1], O_CREAT | O_WRONLY | O_TRUNC, 0644);
-          if(FileCheck < 0){
-              perror("Error");
-          }
-          dup2(FileCheck, 1);
-          close(FileCheck);
-          execvp(Commands.arguments[0], Commands.arguments);
-          perror("execvp error");
+          redirection(&IRstruct,ORdelim);
         }
         else{
         execvp(entered.arguments[0],entered.arguments);
