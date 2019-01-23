@@ -61,7 +61,10 @@ int main(int argc, char *argv[])
     entered.input = NULL;
     printf("sshell$ ");
     getline(&entered.input,&bufsize,stdin);
-
+    if (!isatty(STDIN_FILENO)) {
+        printf("%s", entered.input);
+        fflush(stdout);
+    }
     // for (int i = 0; i < strlen(entered.input); i++)
     // {
     //   if ( entered.input[i] == '\n')
@@ -99,10 +102,11 @@ int main(int argc, char *argv[])
     if (strcmp("cd",entered.arguments[0]) == 0){
       chdir(entered.arguments[1]);
       bul = 1;
+      fprintf(stderr, "+ completed '%s' [%d]\n",inputCpy,WEXITSTATUS(status));
     }
     //check to see if command is 'exit'
     if (strcmp("exit",entered.arguments[0]) == 0){
-      printf("Bye...\n");
+      fprintf(stderr, "Bye...\n");
       exit(0);
     }
     //-------------------shell skeleton-------------------
@@ -136,6 +140,9 @@ int main(int argc, char *argv[])
         //char *args[] = {"grep","toto", NULL };
         execvp(Commands.arguments[0], Commands.arguments);
         perror("execvp error");
+        }
+        else if (strstr(inputCpy, ">") != NULL) {
+          /* code */
         }
         else{
         execvp(entered.arguments[0],entered.arguments);
