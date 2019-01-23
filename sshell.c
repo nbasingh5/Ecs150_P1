@@ -14,7 +14,6 @@ typedef struct UsersInput{
 void RemoveWhiteSpace(UsersInput *temp) {
   char *buffer = temp->arguments[1];
   int i,count=0;
-
   for (size_t i = 0; buffer[i]; i++) {
     if (buffer[i] != ' ') {
       buffer[count] = buffer[i];
@@ -52,6 +51,7 @@ int main(int argc, char *argv[])
   pid_t pid;
   char delim[] = " ";
   char IRdelim[] = "<";
+  char ORdelim[] = ">";
   char *inputCpy,*IRtok;
   int bul = 0;
 
@@ -61,7 +61,10 @@ int main(int argc, char *argv[])
     entered.input = NULL;
     printf("sshell$ ");
     getline(&entered.input,&bufsize,stdin);
-
+    if (!isatty(STDIN_FILENO)) {
+        printf("%s", entered.input);
+        fflush(stdout);
+    }
     // for (int i = 0; i < strlen(entered.input); i++)
     // {
     //   if ( entered.input[i] == '\n')
@@ -99,10 +102,11 @@ int main(int argc, char *argv[])
     if (strcmp("cd",entered.arguments[0]) == 0){
       chdir(entered.arguments[1]);
       bul = 1;
+      fprintf(stderr, "+ completed '%s' [%d]\n",inputCpy,WEXITSTATUS(status));
     }
     //check to see if command is 'exit'
     if (strcmp("exit",entered.arguments[0]) == 0){
-      printf("Bye...\n");
+      fprintf(stderr, "Bye...\n");
       exit(0);
     }
     //-------------------shell skeleton-------------------
@@ -136,6 +140,23 @@ int main(int argc, char *argv[])
         //char *args[] = {"grep","toto", NULL };
         execvp(Commands.arguments[0], Commands.arguments);
         perror("execvp error");
+        }
+        else
+        if (strstr(inputCpy, ">") != NULL) {
+          SpaceTok(&IRstruct,ORdelim);
+          struct UsersInput Commands;
+          Commands.input = (char *) malloc(1 + strlen(inputCpy));
+          strcpy(Commands.input,IRstruct.arguments[0]);
+          SpaceTok(&Commands, delim);
+          RemoveWhiteSpace(&IRstruct);
+          int FileCheck = open(IRstruct.arguments[1], O_CREAT | O_WRONLY | O_TRUNC, 0644);
+          if(FileCheck < 0){
+              perror("Error");
+          }
+          dup2(FileCheck, 1);
+          close(FileCheck);
+          execvp(Commands.arguments[0], Commands.arguments);
+          perror("execvp error");
         }
         else{
         execvp(entered.arguments[0],entered.arguments);
