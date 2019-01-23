@@ -14,7 +14,6 @@ typedef struct UsersInput{
 void RemoveWhiteSpace(UsersInput *temp) {
   char *buffer = temp->arguments[1];
   int i,count=0;
-
   for (size_t i = 0; buffer[i]; i++) {
     if (buffer[i] != ' ') {
       buffer[count] = buffer[i];
@@ -26,9 +25,6 @@ void RemoveWhiteSpace(UsersInput *temp) {
 
 void SpaceTok(UsersInput *Tokinput, char* delim) {
   int count = 1;
-
-  //printf("Funtion: %s\n", Tokinput->input);
-
   char *parsedInput = strtok(Tokinput->input, delim);
   Tokinput->arguments[0] = parsedInput;
 
@@ -43,6 +39,39 @@ void SpaceTok(UsersInput *Tokinput, char* delim) {
   }
 }
 
+
+void redirection(UsersInput *redirect, char *direction) {
+  char delim[] = " ";
+  int FileCheck = 0;
+  SpaceTok(redirect,direction);
+  struct UsersInput Commands;
+  Commands.input = (char *) malloc(1 + strlen(redirect->arguments[0]));
+  strcpy(Commands.input,redirect->arguments[0]);
+  SpaceTok(&Commands, delim);
+  RemoveWhiteSpace(redirect);
+
+  if (strcmp(direction, "<") == 0) {
+    FileCheck = open(redirect->arguments[1], O_RDONLY, 0644);
+  }
+  else if (strcmp(direction, ">") == 0) {
+    FileCheck = open(redirect->arguments[1], O_CREAT | O_WRONLY | O_TRUNC, 0644);
+  }
+  if(FileCheck < 0){
+    perror("Error");
+  }
+  if (strcmp(direction, "<") == 0) {
+    dup2(FileCheck, 0);
+  }
+  else if (strcmp(direction, ">") == 0) {
+    dup2(FileCheck, 1);
+  }
+
+  close(FileCheck);
+  //char *args[] = {"grep","toto", NULL };
+  execvp(Commands.arguments[0], Commands.arguments);
+  perror("execvp error");
+}
+
 int main(int argc, char *argv[])
 {
   struct UsersInput entered;
@@ -52,6 +81,7 @@ int main(int argc, char *argv[])
   pid_t pid;
   char delim[] = " ";
   char IRdelim[] = "<";
+  char ORdelim[] = ">";
   char *inputCpy,*IRtok;
   int bul = 0;
 
@@ -65,14 +95,7 @@ int main(int argc, char *argv[])
         printf("%s", entered.input);
         fflush(stdout);
     }
-    // for (int i = 0; i < strlen(entered.input); i++)
-    // {
-    //   if ( entered.input[i] == '\n')
-    //   {
-    //     //entered.input[i] = ' ';
-    //     printf("Nothiing:[%c]\n",entered.input[i]);
-    //   }
-    // }
+
     if (entered.input[0] == '\n') {
       continue;
     }
@@ -91,12 +114,6 @@ int main(int argc, char *argv[])
     strcpy(IRstruct.input,entered.input);
     SpaceTok(&entered, delim);
 
-    // int i = 0;
-    // while (entered.arguments[i] != NULL) {
-    //   if (i < sizeof(entered.arguments))
-    //       printf("Parts: %s\n", entered.arguments[i]);
-    //       i++;
-    // }
 
     //check to see if command is 'cd'
     if (strcmp("cd",entered.arguments[0]) == 0){
@@ -124,25 +141,12 @@ int main(int argc, char *argv[])
       }
       else{
         if (strstr(inputCpy, "<") != NULL) {
-          SpaceTok(&IRstruct,IRdelim);
-          struct UsersInput Commands;
-          Commands.input = (char *) malloc(1 + strlen(inputCpy));
-          strcpy(Commands.input,IRstruct.arguments[0]);
-          SpaceTok(&Commands, delim);
-          RemoveWhiteSpace(&IRstruct);
-          int FileCheck = open(IRstruct.arguments[1], O_RDONLY, 0644);
-          if(FileCheck < 0){
-            perror("Error");
-            return -1;
-          }
-        dup2(FileCheck, 0);
-        close(FileCheck);
-        //char *args[] = {"grep","toto", NULL };
-        execvp(Commands.arguments[0], Commands.arguments);
-        perror("execvp error");
+          redirection(&IRstruct,IRdelim);
+
         }
-        else if (strstr(inputCpy, ">") != NULL) {
-          /* code */
+        else
+        if (strstr(inputCpy, ">") != NULL) {
+          redirection(&IRstruct,ORdelim);
         }
         else{
         execvp(entered.arguments[0],entered.arguments);
