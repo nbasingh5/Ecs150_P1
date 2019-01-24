@@ -67,8 +67,10 @@ void redirection(UsersInput *redirect, char *direction) {
 
   close(FileCheck);
   //char *args[] = {"grep","toto", NULL };
-  execvp(Commands.arguments[0], Commands.arguments);
-  perror("execvp error");
+  if (FileCheck != -1) {
+    execvp(Commands.arguments[0], Commands.arguments);
+    perror("execvp error");
+  }
 }
 
 //count how many pipe arguments there are in the input
@@ -217,9 +219,11 @@ int main(int argc, char *argv[])
   char *inputCpy,*IRtok;
   int bul = 0;
   int numOfPipes = 0;
+  int cderr = 1;
 
   while (1) {
     bul = 0;
+    cderr = 1;
     entered.input = (char *)malloc(bufsize * sizeof(char));
     entered.input = NULL;
     printf("sshell$ ");
@@ -260,8 +264,12 @@ int main(int argc, char *argv[])
 
     //check to see if command is 'cd'
     if (strcmp("cd",entered.arguments[0]) == 0){
-      chdir(entered.arguments[1]);
+      cderr = chdir(entered.arguments[1]);
       bul = 1;
+      if (cderr == -1) {
+        fprintf(stderr,"Error: no such directory\n");
+        continue;
+      }
       fprintf(stderr, "+ completed '%s' [%d]\n",inputCpy,WEXITSTATUS(status));
     }
     //check to see if command is 'exit'
