@@ -39,29 +39,6 @@ void SpaceTok(UsersInput *Tokinput, char* delim) {
   }
 }
 
-int checkRedirection(char *command){
-  //returns a pointer to the first character of s1 where s2 is found - if s2 is not in s1, then returns NULL
-  char *greaterThan = strstr(command, ">");
-  char *lessThan = strstr(command, "<");
-
-  //BOTH: input and output redirection
-  if( (greaterThan != NULL) && (lessThan != NULL) ){
-    return 0;
-  }
-  //GREATER THAN: out rputedirection only
-  else if( greaterThan != NULL ){
-    return 0;
-  }
-  //LESS THAN: input redirection only
-  else if( lessThan != NULL ){
-    return 0;
-  }
-  //no redirection
-  else{
-    return -1;
-  }
-}
-
 void redirection(UsersInput *redirect, char *direction) {
   char delim[] = " ";
   int FileCheck = 0;
@@ -102,31 +79,63 @@ int countPipes(char *input, int len){
       count += 1;
     }
   }
+  if (count >= 1) {
+    count +=1;
+  }
   return count;
 }
 
-int do_pipe(char **commands, int *pipeCount, int currPipePhase)
+void piping(char **commands, int pipeCount, int currPipePhase)
 {
-  int typeRedirection = 0;
+  char delim[] = " ";
+  char IRdelim[] = "<";
+  char ORdelim[] = ">";
+  int status;
+while (currPipePhase < pipeCount) {
+  char *getridofspace = commands[currPipePhase];
+  int begin = 0;
+  int end = strlen(getridofspace) - 1;
+  int i;
+  char space = ' ';
+  while (getridofspace[begin] == ' ')
+      begin++;
+
+  while ((end >= begin) && (getridofspace[end] == ' '))
+      end--;
+
+  // Shift all characters back to the start of the string array.
+  for (i = begin; i <= end; i++)
+      getridofspace[i - begin] = getridofspace[i];
+
+  getridofspace[i - begin] = '\0'; // Null terminate string.
+
+  printf("COMMANDS: [%s]\n",commands[currPipePhase]);
 
   //if in last process
-  if(currPipePhase == *pipeCount - 1)
+  if(currPipePhase == pipeCount - 1)
   {
+    struct UsersInput space;
+    space.input = (char *) malloc(1 + strlen(commands[currPipePhase]));
+    strcpy(space.input, commands[currPipePhase]);
     //check if it is not a redirection
-    if( checkRedirection(commands[currPipePhase]) == -1)
+    //if redirection
+    if (strstr(commands[currPipePhase], "<") != NULL) {
+      redirection(&space,IRdelim);
+    }
+    else
+    if (strstr(commands[currPipePhase], ">") != NULL) {
+      redirection(&space,ORdelim);
+    }
+    else
     {
-      execvp(commands[currPipePhase][0],commands[] );---------------------------
+      SpaceTok(&space,delim);
+      execvp(space.arguments[0],space.arguments);
       perror("execvp error");
     }
-
-    //if redirection
-    redirection(CMD , ); ------------------------------------------------------
-
     //end recursion and return
-    return 1;
   }
   //if on other pipe processes
-  if(currPipePhase < *pipeCount)
+  if(currPipePhase < pipeCount)
   {
     int fd[2];
     pid_t pid;
@@ -152,33 +161,46 @@ int do_pipe(char **commands, int *pipeCount, int currPipePhase)
       close(fd[0]);
 
       //check if it is not a redirection
-      if( checkRedirection(  ) == -1){------------------------------------
-        execvp();
-        perror("execvp error");
-      }
+      struct UsersInput space;
 
-      //if there is a redirection
-      redirection(CMD , ); --------------------------------------------------
-      waitpid(-1, &status, 0); // wait for child process to finish
+      space.input = (char *) malloc(1 + strlen(commands[currPipePhase]));
+      strcpy(space.input, commands[currPipePhase]);
+        //if redirection
+        if (strstr(commands[currPipePhase], "<") != NULL) {
+          redirection(&space,IRdelim);
+        }
+        else
+        if (strstr(commands[currPipePhase], ">") != NULL) {
+          redirection(&space,ORdelim);
+        }else
+          {
+            SpaceTok(&space,delim);
+            execvp(space.arguments[0],space.arguments);
+            perror("execvp error");
+          }
+      waitpid(pid, &status, 0); // wait for child process to finish
+      fprintf(stderr, "+ completed 'Checking:' [%d]\n",WEXITSTATUS(status));
 
     }
     //if child
     else
     {
       //if not on the last piping process
-      if(currPipePhase != *pipecount-1){
+      if(currPipePhase != pipeCount-1){
         //close the keyboard FD (file descriptor) and replace with the 'read' RD
         dup2(fd[0],0);
+        close(fd[1]);
       }
       //close the 'write' FD
       close(fd[1]);
 
       //increment the traker of the current pipe phase we are on
       currPipePhase+= 1;
+}
+
       //do next pipe process
-      do_pipe(processCommand, pipecount, currPipePhase);
+      //piping(commands, pipeCount, currPipePhase);
     }
-    return 1;
   }
 }
 
@@ -251,6 +273,7 @@ int main(int argc, char *argv[])
     }
     //-------------------shell skeleton-------------------
     //fork a process (create parent and child)
+
     pid = fork();
     //parent
     if (pid > 0) {
@@ -266,7 +289,7 @@ int main(int argc, char *argv[])
       else if(numOfPipes != 0){
         //get input and parse through
         printf("PIPING: %d\n",numOfPipes );
-        do_pipe(InputArray.arguments ,&numOfPipes, 0);
+        piping(InputArray.arguments ,numOfPipes, 0);
       }
       else{
         if (strstr(inputCpy, "<") != NULL) {
