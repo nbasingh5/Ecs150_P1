@@ -109,8 +109,6 @@ while (currPipePhase < pipeCount) {
 
   getridofspace[i - begin] = '\0'; // Null terminate string.
 
-  printf("COMMANDS: [%s]\n",commands[currPipePhase]);
-
   //if in last process
   if(currPipePhase == pipeCount - 1)
   {
@@ -288,7 +286,6 @@ int main(int argc, char *argv[])
       //if there is piping
       else if(numOfPipes != 0){
         //get input and parse through
-        printf("PIPING: %d\n",numOfPipes );
         piping(InputArray.arguments ,numOfPipes, 0);
       }
       else{
