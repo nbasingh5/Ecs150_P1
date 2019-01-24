@@ -116,6 +116,9 @@ void do_pipe(char **commands, int *pipeCount, int currPipePhase)
   int end = strlen(getridofspace) - 1;
   int i;
   char space = ' ';
+
+
+
   while (getridofspace[begin] == ' ')
       begin++;
 
@@ -237,6 +240,7 @@ int main(int argc, char *argv[])
   char *inputCpy,*IRtok;
   int bul = 0;
   int numOfPipes = 0;
+  int cd_error = 1;
 
   while (1) {
     bul = 0;
@@ -280,7 +284,11 @@ int main(int argc, char *argv[])
 
     //check to see if command is 'cd'
     if (strcmp("cd",entered.arguments[0]) == 0){
-      chdir(entered.arguments[1]);
+      cd_error = chdir(entered.arguments[1]);
+      if(cd_error == -1){
+        fprintf(stderr, "Error: no such directory\n");
+        continue;
+      }
       bul = 1;
       fprintf(stderr, "+ completed '%s' [%d]\n",inputCpy,WEXITSTATUS(status));
     }
