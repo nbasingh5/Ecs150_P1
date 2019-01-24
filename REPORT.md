@@ -14,7 +14,10 @@ parent waits for the child process to be finished and then prints out the
 completion statement.
 
 **Phase 5-6**
+For phases five and six, we implemented the redirection functionalities by checking what type of redirection command was trying to be performed. Depending on the type of redirection, it would then go through a function to open and close the necessary ports using dup2().
 
 **Phase 7**
+For phase seven, we implemented our piping commands by keeping track of the commands needed for the processes, the current process we are on, and the number of pipes that need to occur. Once we have all the information, we use a recursive do_pipe() function. We built our function so that if we are in the last process, we check to see if there is a redirection command needed to be performed if not then we execute the last process. If we are in any of the other pipe phases, we pipe and fork, creating parent and child processes. If we are in the parent process, we open and close the appropriate file descriptors and check if once again if there is a redirection, if not then executes the appropriate command. If we are in the child process, we open and close the needed file descriptors and recursively call on this function again.
+
 
 **Phase 8**
